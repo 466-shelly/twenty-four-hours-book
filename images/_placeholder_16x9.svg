@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="450"
+     viewBox="0 0 800 450" preserveAspectRatio="xMidYMid meet">
+  <defs>
+    <filter id="grain">
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="3" stitchTiles="stitch"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.18"/></feComponentTransfer>
+      <feBlend in="SourceGraphic" mode="multiply"/>
+    </filter>
+  </defs>
+  <rect width="800" height="450" fill="#EDE8DC"/>
+  <rect width="800" height="450" filter="url(#grain)" opacity="0.35"/>
+  <rect x="18" y="18" width="764" height="414" fill="none"
+        stroke="#C49A45" stroke-width="1" opacity="0.55"/>
+  <rect x="24" y="24" width="752" height="402" fill="none"
+        stroke="#8A8478" stroke-width="0.75" stroke-dasharray="6 5" opacity="0.35"/>
+  <text x="400" y="217" text-anchor="middle"
+        font-family="Playfair Display, Georgia, 'Noto Serif SC', serif"
+        font-size="28" font-style="italic" fill="#8A8478">油画插图占位</text>
+  <text x="400" y="253" text-anchor="middle"
+        font-family="Playfair Display, Georgia, serif"
+        font-size="14" letter-spacing="3" fill="#C49A45" opacity="0.85">
+    16:9 · VAN GOGH CANVAS
+  </text>
+</svg>
