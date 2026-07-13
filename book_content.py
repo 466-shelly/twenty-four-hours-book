@@ -294,6 +294,21 @@ SCENE_CARDS = [
         # 抉择逻辑：无论 A/B，实际走向均为冲进雨中（命运已定）
         "outcome_regardless": "enter_rain",
         "author_note": CHOICE_AUTHOR_NOTES[7],
+        # 两扇门交互（先仅节点七）
+        "door_choice": {
+            "A": {
+                "title": "旅馆暖灯",
+                "subtitle": "转身离开，回到自己的旅馆",
+                "mood": "warm",
+                "kicker": "理智的退路",
+            },
+            "B": {
+                "title": "雨幕长椅",
+                "subtitle": "冲进雨中，拉起他",
+                "mood": "rain",
+                "kicker": "命运的牵引",
+            },
+        },
     },
     {
         "image": "images/scene_08_inn.png",
@@ -368,6 +383,21 @@ SCENE_CARDS = [
         # 抉择逻辑：无论 A/B，实际走向均为走进旅店房间（命运已定）
         "outcome_regardless": "enter_room",
         "author_note": CHOICE_AUTHOR_NOTES[8],
+        # 两扇门交互（与节点七同式）
+        "door_choice": {
+            "A": {
+                "title": "门外放下钱",
+                "subtitle": "塞钱给他，自己转身离开",
+                "mood": "warm",
+                "kicker": "体面的退路",
+            },
+            "B": {
+                "title": "门槛里的房间",
+                "subtitle": "陪他一起跨过旅店门槛",
+                "mood": "rain",
+                "kicker": "命运的越界",
+            },
+        },
     },
     {
         "image": "images/scene_09_dawn.png",

@@ -902,6 +902,126 @@ div[data-testid="stHorizontalBlock"]:has(.original-quote) {{
   line-height: 1.7;
   color: #3A2F22;
 }}
+
+/* ---------- 命运双门抉择 ---------- */
+.fate-door-stage {{
+  margin: 0.75rem 0 0.35rem;
+}}
+.fate-door-hint {{
+  text-align: center;
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  color: {SAGE};
+  margin: 0 0 0.75rem;
+}}
+.fate-door-face {{
+  position: relative;
+  min-height: 210px;
+  padding: 1.15rem 1rem 1.25rem;
+  box-sizing: border-box;
+  border-radius: 4px 4px 2px 2px;
+  border: 1px solid rgba(196, 154, 69, 0.55);
+  box-shadow:
+    inset 0 0 0 5px rgba(237, 232, 220, 0.55),
+    inset 0 0 0 6px rgba(196, 154, 69, 0.28),
+    0 10px 22px rgba(44, 36, 22, 0.1);
+  text-align: center;
+  overflow: hidden;
+}}
+.fate-door-face.mood-warm {{
+  background:
+    radial-gradient(ellipse 80% 55% at 50% 18%, rgba(196, 154, 69, 0.35), transparent 62%),
+    linear-gradient(165deg, #F4EFE3 0%, {IVORY} 45%, #E0D5C2 100%);
+}}
+.fate-door-face.mood-rain {{
+  background:
+    linear-gradient(180deg, rgba(83, 98, 87, 0.14), transparent 42%),
+    repeating-linear-gradient(
+      185deg,
+      transparent 0 10px,
+      rgba(44, 36, 22, 0.04) 10px 11px
+    ),
+    linear-gradient(165deg, #E8E4DA 0%, {PARCHMENT} 50%, #D5CFC2 100%);
+}}
+.fate-door-face .door-kicker {{
+  display: block;
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: 0.68rem;
+  letter-spacing: 0.16em;
+  color: {SAGE};
+  margin-bottom: 0.55rem;
+}}
+.fate-door-face .door-title {{
+  display: block;
+  font-family: "Noto Serif SC", "Source Han Serif SC", serif;
+  font-size: 1.28rem;
+  font-weight: 700;
+  color: {CARBON};
+  letter-spacing: 0.08em;
+  margin-bottom: 0.45rem;
+}}
+.fate-door-face .door-sub {{
+  margin: 0 0 0.65rem;
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: {BROWN};
+}}
+.fate-door-face .door-voice {{
+  margin: 0;
+  padding-top: 0.55rem;
+  border-top: 1px solid rgba(196, 154, 69, 0.28);
+  font-size: 0.8rem;
+  font-style: italic;
+  line-height: 1.65;
+  color: #3A2F22;
+  opacity: 0.9;
+}}
+.fate-doors-resolved {{
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 260px;
+  margin: 0.5rem 0 1rem;
+}}
+.fate-doors-resolved .fate-door-face {{
+  width: min(340px, 72%);
+  transition: opacity 0.45s ease, transform 0.45s ease;
+}}
+.fate-doors-resolved .fate-door-face.is-picked {{
+  position: relative;
+  z-index: 2;
+  transform: scale(1.04);
+  animation: doorSettle 0.55s ease both;
+}}
+.fate-doors-resolved .fate-door-face.is-faded {{
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%) scale(0.86);
+  opacity: 0.22;
+  pointer-events: none;
+  filter: grayscale(0.25);
+  z-index: 1;
+}}
+.fate-doors-resolved.picked-A .fate-door-face.is-faded {{
+  right: 4%;
+  left: auto;
+}}
+.fate-doors-resolved.picked-B .fate-door-face.is-faded {{
+  left: 4%;
+  right: auto;
+}}
+@keyframes doorSettle {{
+  from {{ opacity: 0.7; transform: scale(0.96) translateY(8px); }}
+  to {{ opacity: 1; transform: scale(1.04) translateY(0); }}
+}}
+.fate-door-face.is-pickable {{
+  cursor: pointer;
+  transition: border-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
+}}
+/* 点选热区：透明按钮叠在门面上（由 render 注入 .st-key-door_* 细则） */
+
 .confession-box {{
   background-color: rgba(107, 74, 48, 0.14);
   border-left: 3px solid {BROWN};
@@ -2059,8 +2179,175 @@ def render_coda() -> None:
         )
 
 
+def _door_face_html(
+    door: dict,
+    voice: str = "",
+    *,
+    picked: bool = False,
+    faded: bool = False,
+    pickable: bool = False,
+) -> str:
+    """紧凑单行 HTML，避免 Streamlit markdown 拆坏嵌套标签导致泄漏 </div>。"""
+    mood = html.escape(door.get("mood", "warm"))
+    kicker = html.escape(door.get("kicker", ""))
+    title = html.escape(door.get("title", ""))
+    subtitle = html.escape(door.get("subtitle", ""))
+    voice_html = (
+        f'<p class="door-voice">{html.escape(voice)}</p>' if voice else ""
+    )
+    state = "is-picked" if picked else ("is-faded" if faded else "")
+    if pickable:
+        state = f"{state} is-pickable".strip()
+    return (
+        f'<div class="fate-door-face mood-{mood} {state}">'
+        f'<span class="door-kicker">{kicker}</span>'
+        f'<span class="door-title">{title}</span>'
+        f'<p class="door-sub">{subtitle}</p>'
+        f"{voice_html}"
+        f"</div>"
+    )
+
+
+def render_door_choice_block(card: dict, scene_idx: int) -> None:
+    """两扇门抉择：门面可视，透明按钮叠热区；选定后淡化另一扇并居中，再出独白与命运回响。"""
+    doors = card.get("door_choice") or {}
+    choices = card.get("choices") or {}
+    voices = card.get("reader_voice") or {}
+    door_a = doors.get("A") or {"title": "A", "subtitle": "", "mood": "warm", "kicker": ""}
+    door_b = doors.get("B") or {"title": "B", "subtitle": "", "mood": "rain", "kicker": ""}
+
+    prompt = card.get("choice_prompt", "")
+    if prompt:
+        st.markdown(
+            f'<p class="choice-prompt">{html.escape(prompt)}</p>',
+            unsafe_allow_html=True,
+        )
+
+    choice = st.session_state.choices.get(scene_idx)
+
+    if not choice:
+        key_a = f"door_{scene_idx}_A"
+        key_b = f"door_{scene_idx}_B"
+        # 用 st-key-* + 负边距叠热区（比 column absolute 更稳，避免点不到或露出按钮）
+        st.markdown(
+            f"""
+            <style>
+            .st-key-{key_a},
+            .st-key-{key_b} {{
+              margin-top: -280px !important;
+              margin-bottom: 0 !important;
+              height: 280px !important;
+              max-height: 280px !important;
+              position: relative !important;
+              z-index: 8 !important;
+              overflow: hidden !important;
+            }}
+            .st-key-{key_a} div[data-testid="stButton"],
+            .st-key-{key_b} div[data-testid="stButton"],
+            .st-key-{key_a} .stButton,
+            .st-key-{key_b} .stButton {{
+              height: 280px !important;
+              margin: 0 !important;
+            }}
+            .st-key-{key_a} button,
+            .st-key-{key_b} button {{
+              opacity: 0 !important;
+              width: 100% !important;
+              height: 280px !important;
+              min-height: 280px !important;
+              max-height: 280px !important;
+              cursor: pointer !important;
+              border: none !important;
+              background: transparent !important;
+              background-image: none !important;
+              box-shadow: none !important;
+              color: transparent !important;
+              padding: 0 !important;
+            }}
+            .fate-door-face.is-pickable {{
+              min-height: 260px !important;
+              height: 260px !important;
+              box-sizing: border-box !important;
+              margin-bottom: 0.35rem;
+              overflow: hidden;
+            }}
+            div[data-testid="column"]:has(.st-key-{key_a}:hover) .fate-door-face.is-pickable,
+            div[data-testid="column"]:has(.st-key-{key_b}:hover) .fate-door-face.is-pickable {{
+              border-color: rgba(196, 154, 69, 0.92) !important;
+              transform: translateY(-2px);
+              box-shadow:
+                inset 0 0 0 5px rgba(237, 232, 220, 0.55),
+                inset 0 0 0 6px rgba(196, 154, 69, 0.4),
+                0 12px 26px rgba(44, 36, 22, 0.14) !important;
+            }}
+            </style>
+            """,
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            '<p class="fate-door-hint">FATE DOORS · 点选一扇门</p>',
+            unsafe_allow_html=True,
+        )
+        col_a, col_b = st.columns(2, gap="medium")
+        with col_a:
+            st.markdown(
+                _door_face_html(door_a, voices.get("A", ""), pickable=True),
+                unsafe_allow_html=True,
+            )
+            if st.button(
+                f"推开 · {door_a.get('title', 'A')}",
+                key=key_a,
+                width="stretch",
+            ):
+                st.session_state.choices[scene_idx] = "A"
+                st.rerun()
+        with col_b:
+            st.markdown(
+                _door_face_html(door_b, voices.get("B", ""), pickable=True),
+                unsafe_allow_html=True,
+            )
+            if st.button(
+                f"推开 · {door_b.get('title', 'B')}",
+                key=key_b,
+                width="stretch",
+            ):
+                st.session_state.choices[scene_idx] = "B"
+                st.rerun()
+        st.markdown(
+            f'<div class="choice-hint">{CHOICE_HINT}</div>',
+            unsafe_allow_html=True,
+        )
+        return
+
+    resolved = (
+        f'<div class="fate-doors-resolved picked-{html.escape(str(choice))}">'
+        f"{_door_face_html(door_a, picked=(choice == 'A'), faded=(choice != 'A'))}"
+        f"{_door_face_html(door_b, picked=(choice == 'B'), faded=(choice != 'B'))}"
+        f"</div>"
+    )
+    st.markdown(resolved, unsafe_allow_html=True)
+
+    render_confession(card.get(f"feedback_{choice}", ""))
+
+    picked_door = doors.get(choice) or {}
+    picked_label = picked_door.get("title") or choices.get(choice, choice)
+    note = card.get("author_note") or ""
+    echo = (
+        f'<div class="fate-echo">'
+        f'<span class="echo-kicker">命运回响 · 你以为自己推开了</span>'
+        f'<p class="echo-you">你推开了 <em>{html.escape(str(choice))} · {html.escape(picked_label)}</em></p>'
+        f"<p>{html.escape(note)}</p>"
+        f"</div>"
+    )
+    st.markdown(echo, unsafe_allow_html=True)
+
+
 def render_choice_block(card: dict, scene_idx: int) -> None:
-    """伪分支抉择：选完后独白反馈 + 命运回响（强调「你以为自己选择了」）。"""
+    """伪分支抉择：有 door_choice 时走双门；否则保留按钮。"""
+    if card.get("door_choice"):
+        render_door_choice_block(card, scene_idx)
+        return
+
     prompt = card.get("choice_prompt", "")
     if prompt:
         st.markdown(
@@ -2072,7 +2359,6 @@ def render_choice_block(card: dict, scene_idx: int) -> None:
     voices = card.get("reader_voice") or {}
     already_chosen = st.session_state.choices.get(scene_idx) is not None
 
-    # 未选时展示两侧内心独白对照
     if not already_chosen and (voices.get("A") or voices.get("B")):
         st.markdown(
             f"""
