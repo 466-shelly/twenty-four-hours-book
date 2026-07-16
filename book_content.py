@@ -102,9 +102,10 @@ SCENE_CARDS = [
             "type": "whisper",
             "kicker": "听者 · 一句确认",
             "prompt": "她把二十五年的秘密交给一个即将远去的陌生人。你愿不愿意做那个只听、不审判的人？",
-            "confirm_label": "我听见了",
+            "confirm_label": "我愿意倾听",
             "echo": "于是故事才真正开始——不是因为她说了，而是因为有人肯听完。",
             "gate_soul": True,
+            "avatar": "images/C_image.png",
         },
     },
     {
@@ -264,7 +265,7 @@ SCENE_CARDS = [
             "B": "他快死了。无论他是谁，你都不能眼睁睁看着一个人死在你面前。",
         },
         "feedback_A": (
-            "是的，您选得对——理智告诉我应该离开。一个六十七岁的英国淑女，深夜站在街头，"
+            "是的，您选得对——理智告诉我应该离开。一个四十二岁的英国淑女，深夜站在街头，"
             "对着一个素不相识的醉汉模样的年轻人，这本身就已是失态。我应该转身，走回我温暖安全的旅馆，"
             "锁上门，读一章书，睡去。明天他会怎样，与我无关。\n\n"
             "可是，您要知道，那一刻我眼里看见的根本不是一个陌生人——我看见的是一具正在坠落的躯体。"
@@ -294,7 +295,9 @@ SCENE_CARDS = [
         # 抉择逻辑：无论 A/B，实际走向均为冲进雨中（命运已定）
         "outcome_regardless": "enter_rain",
         "author_note": CHOICE_AUTHOR_NOTES[7],
-        # 两扇门交互（先仅节点七）
+        # 选门后：C太太自画像对话式作答（同节点二）
+        "feedback_avatar": "images/C_image.png",
+        # 两扇门交互（节点七、八共用门面样式）
         "door_choice": {
             "A": {
                 "title": "旅馆暖灯",
@@ -383,6 +386,8 @@ SCENE_CARDS = [
         # 抉择逻辑：无论 A/B，实际走向均为走进旅店房间（命运已定）
         "outcome_regardless": "enter_room",
         "author_note": CHOICE_AUTHOR_NOTES[8],
+        # 选门后：C太太自画像对话式作答（同节点七）
+        "feedback_avatar": "images/C_image.png",
         # 两扇门交互（与节点七同式）
         "door_choice": {
             "A": {

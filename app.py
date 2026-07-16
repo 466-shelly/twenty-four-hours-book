@@ -15,7 +15,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 from PIL import Image
 
-from book_content import EPILOGUE, INTRO, SCENE_CARDS
+from book_content import EPILOGUE, SCENE_CARDS
 
 # ---------------------------------------------------------------------------
 # 路径与资源
@@ -47,7 +47,11 @@ BOOK_COVER = "#3A3228"
 CREAM = "#F2EBD8"
 PARCHMENT = "#E8DFD0"
 TOTAL_PAGES = len(SCENE_CARDS)
-PREVIEW_COUNT = 2  # 对开右页预览插图数量（疏朗，不紧凑）
+# 展廊便签微旋（15 张）
+EXHIBIT_TILTS = (
+    -3.2, 2.6, -2.1, 3.4, -2.8, 2.2, -3.6, 2.9,
+    -1.8, 3.1, -2.4, 2.7, -3.0, 1.9, -2.5,
+)
 
 SCENE_CLOCKS = [
     "18:00",
@@ -436,13 +440,32 @@ def build_soul_scratch_html(analysis: str, scene_idx: int, *, light: bool = Fals
 </body></html>"""
 
 
-def render_soul_analysis(analysis: str, scene_idx: int, *, light: bool = False) -> None:
-    """心灵解剖：首次以刮擦显影呈现，之后保持清晰。"""
-    height = max(220, min(560, 150 + len(analysis) // 2))
-    components.html(
-        build_soul_scratch_html(analysis, scene_idx, light=light),
-        height=height,
-        scrolling=False,
+def render_soul_analysis(
+    analysis: str,
+    scene_idx: int,
+    *,
+    scratch: bool = False,
+    light: bool = False,
+) -> None:
+    """心灵解剖：默认直接显示；仅 scratch=True（节点十五）时刮擦显影。"""
+    if not analysis:
+        return
+    if scratch:
+        height = max(220, min(560, 150 + len(analysis) // 2))
+        components.html(
+            build_soul_scratch_html(analysis, scene_idx, light=light),
+            height=height,
+            scrolling=False,
+        )
+        return
+    st.markdown(
+        f"""
+        <div class="soul-analysis">
+          <div class="soul-title">心灵解剖 · Deep Soul</div>
+          <p class="soul-text">{_escape_multiline(analysis)}</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
 
 # ---------------------------------------------------------------------------
@@ -731,6 +754,33 @@ div[data-testid="stHorizontalBlock"]:has(.scene-card-marker)
   margin: 0.4rem 0 1.1rem;
   padding: 0;
 }}
+.soul-analysis {{
+  position: relative;
+  width: 100%;
+  margin: 0.35rem 0 0.85rem;
+  background: rgba(140, 43, 43, 0.04);
+  border: 1px dotted rgba(140, 43, 43, 0.55);
+  border-radius: 2px;
+  box-shadow: inset 0 0 0 3px rgba(140, 43, 43, 0.03);
+  overflow: hidden;
+}}
+.soul-analysis .soul-title {{
+  padding: 14px 18px 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  color: {MADDER};
+  font-family: "Playfair Display", "Noto Serif SC", serif;
+}}
+.soul-analysis .soul-text {{
+  padding: 10px 18px 18px;
+  margin: 0;
+  font-style: italic;
+  font-size: 14.5px;
+  line-height: 1.85;
+  text-align: justify;
+  color: {MADDER};
+  opacity: 0.95;
+}}
 div[data-testid="stHorizontalBlock"]:has(.original-quote) {{
   gap: 0.65rem !important;
   margin-bottom: 0.55rem !important;
@@ -917,8 +967,11 @@ div[data-testid="stHorizontalBlock"]:has(.original-quote) {{
 }}
 .fate-door-face {{
   position: relative;
-  min-height: 210px;
-  padding: 1.15rem 1rem 1.25rem;
+  width: min(100%, 440px);
+  max-width: 440px;
+  aspect-ratio: 2 / 3;
+  margin: 0 auto;
+  padding: 1.25rem 1.05rem 1.35rem;
   box-sizing: border-box;
   border-radius: 4px 4px 2px 2px;
   border: 1px solid rgba(196, 154, 69, 0.55);
@@ -928,6 +981,10 @@ div[data-testid="stHorizontalBlock"]:has(.original-quote) {{
     0 10px 22px rgba(44, 36, 22, 0.1);
   text-align: center;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }}
 .fate-door-face.mood-warm {{
   background:
@@ -947,23 +1004,23 @@ div[data-testid="stHorizontalBlock"]:has(.original-quote) {{
 .fate-door-face .door-kicker {{
   display: block;
   font-family: "Playfair Display", Georgia, serif;
-  font-size: 0.68rem;
+  font-size: 0.72rem;
   letter-spacing: 0.16em;
   color: {SAGE};
-  margin-bottom: 0.55rem;
+  margin-bottom: 0.5rem;
 }}
 .fate-door-face .door-title {{
   display: block;
   font-family: "Noto Serif SC", "Source Han Serif SC", serif;
-  font-size: 1.28rem;
+  font-size: 1.45rem;
   font-weight: 700;
   color: {CARBON};
   letter-spacing: 0.08em;
   margin-bottom: 0.45rem;
 }}
 .fate-door-face .door-sub {{
-  margin: 0 0 0.65rem;
-  font-size: 0.82rem;
+  margin: 0 0 0.55rem;
+  font-size: 0.88rem;
   line-height: 1.55;
   color: {BROWN};
 }}
@@ -971,29 +1028,44 @@ div[data-testid="stHorizontalBlock"]:has(.original-quote) {{
   margin: 0;
   padding-top: 0.55rem;
   border-top: 1px solid rgba(196, 154, 69, 0.28);
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   font-style: italic;
-  line-height: 1.65;
+  line-height: 1.6;
   color: #3A2F22;
   opacity: 0.9;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  max-width: 100%;
+}}
+div[data-testid="column"]:has(.fate-door-face.is-pickable) {{
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
 }}
 .fate-doors-resolved {{
   position: relative;
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 260px;
+  min-height: 700px;
   margin: 0.5rem 0 1rem;
 }}
 .fate-doors-resolved .fate-door-face {{
-  width: min(340px, 72%);
-  transition: opacity 0.45s ease, transform 0.45s ease;
+  /* 与选中前 .is-pickable 同为 440×660，禁止因容器变宽而放大 */
+  width: 440px;
+  max-width: 440px;
+  height: 660px;
+  aspect-ratio: 2 / 3;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  transition: opacity 0.45s ease;
 }}
 .fate-doors-resolved .fate-door-face.is-picked {{
   position: relative;
   z-index: 2;
-  transform: scale(1.04);
-  animation: doorSettle 0.55s ease both;
+  transform: none;
+  animation: doorSettle 0.45s ease both;
 }}
 .fate-doors-resolved .fate-door-face.is-faded {{
   position: absolute;
@@ -1013,8 +1085,8 @@ div[data-testid="stHorizontalBlock"]:has(.original-quote) {{
   right: auto;
 }}
 @keyframes doorSettle {{
-  from {{ opacity: 0.7; transform: scale(0.96) translateY(8px); }}
-  to {{ opacity: 1; transform: scale(1.04) translateY(0); }}
+  from {{ opacity: 0.55; }}
+  to {{ opacity: 1; }}
 }}
 .fate-door-face.is-pickable {{
   cursor: pointer;
@@ -1038,6 +1110,81 @@ div[data-testid="stHorizontalBlock"]:has(.original-quote) {{
 @keyframes confessionIn {{
   from {{ opacity: 0; transform: translateY(4px); }}
   to {{ opacity: 1; transform: translateY(0); }}
+}}
+/* 选门后：C太太亲口作答（左像右文，同节点二） */
+div[data-testid="stHorizontalBlock"]:has(.confession-avatar) {{
+  align-items: flex-start !important;
+  margin: 0.85rem 0 0.35rem;
+}}
+div[data-testid="column"]:has(.confession-avatar) {{
+  display: flex !important;
+  justify-content: center !important;
+  align-items: flex-start !important;
+  padding-top: 0.35rem !important;
+}}
+div[data-testid="column"]:has(.confession-dialogue) {{
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+}}
+.confession-avatar {{
+  width: 280px !important;
+  margin: 0 auto !important;
+}}
+.confession-avatar img {{
+  display: block !important;
+  width: 280px !important;
+  height: 280px !important;
+  max-width: 280px !important;
+  object-fit: cover !important;
+  object-position: center top !important;
+  border-radius: 50% !important;
+  border: 2px solid rgba(196, 154, 69, 0.55) !important;
+  box-shadow:
+    0 8px 20px rgba(44, 36, 22, 0.14),
+    inset 0 0 0 4px rgba(237, 232, 220, 0.65) !important;
+  background: {IVORY} !important;
+}}
+.confession-avatar .avatar-caption {{
+  display: block;
+  margin-top: 0.5rem;
+  text-align: center;
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  color: {SAGE};
+}}
+.confession-dialogue {{
+  animation: confessionIn 0.4s ease;
+  padding: 0.15rem 0 0.25rem;
+}}
+.confession-dialogue .beat-kicker {{
+  display: block;
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  color: {SAGE};
+  margin-bottom: 0.55rem;
+}}
+.confession-dialogue .confession-spoken {{
+  margin: 0;
+  font-size: 0.98rem;
+  line-height: 1.85;
+  color: #3A2F22;
+  font-style: italic;
+}}
+@media (max-width: 720px) {{
+  .confession-avatar {{
+    width: 200px !important;
+  }}
+  .confession-avatar img {{
+    width: 200px !important;
+    height: 200px !important;
+    max-width: 200px !important;
+  }}
+  .confession-dialogue {{
+    text-align: center;
+  }}
 }}
 
 /* ---------- 轻交互节拍 / 命运回响 ---------- */
@@ -1070,6 +1217,114 @@ div[data-testid="stHorizontalBlock"]:has(.original-quote) {{
   line-height: 1.75;
   color: #3A2F22;
 }}
+/* 节点二：C太太头像对话式听者确认（右文无独立卡片） */
+div[data-testid="stHorizontalBlock"]:has(.whisper-avatar) {{
+  align-items: center !important;
+}}
+div[data-testid="column"]:has(.whisper-avatar) {{
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+}}
+div[data-testid="column"]:has(.whisper-copy) {{
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+}}
+.whisper-avatar {{
+  width: 280px !important;
+  margin: 0.25rem auto !important;
+}}
+.whisper-avatar img {{
+  display: block !important;
+  width: 280px !important;
+  height: 280px !important;
+  max-width: 280px !important;
+  object-fit: cover !important;
+  object-position: center top !important;
+  border-radius: 50% !important;
+  border: 2px solid rgba(196, 154, 69, 0.55) !important;
+  box-shadow:
+    0 8px 20px rgba(44, 36, 22, 0.14),
+    inset 0 0 0 4px rgba(237, 232, 220, 0.65) !important;
+  background: {IVORY} !important;
+}}
+.whisper-avatar .avatar-caption {{
+  display: block;
+  margin-top: 0.5rem;
+  text-align: center;
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  color: {SAGE};
+}}
+.whisper-copy {{
+  padding-top: 0 !important;
+  margin-bottom: 0.65rem;
+}}
+.whisper-copy .beat-kicker {{
+  display: block;
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  color: {SAGE};
+  margin-bottom: 0.5rem;
+}}
+.whisper-copy .whisper-prompt {{
+  margin: 0;
+  font-size: 0.98rem;
+  line-height: 1.75;
+  color: #3A2F22;
+}}
+/* 按钮与提问文字左对齐，宽度随文字 */
+.st-key-beat_whisper_1,
+div[class*="st-key-beat_whisper_"] {{
+  width: fit-content !important;
+  max-width: 100% !important;
+}}
+.st-key-beat_whisper_1 div[data-testid="stButton"],
+div[class*="st-key-beat_whisper_"] div[data-testid="stButton"],
+.st-key-beat_whisper_1 .stButton,
+div[class*="st-key-beat_whisper_"] .stButton {{
+  width: fit-content !important;
+}}
+.st-key-beat_whisper_1 button,
+div[class*="st-key-beat_whisper_"] button {{
+  width: auto !important;
+  min-width: unset !important;
+  padding-left: 1.15rem !important;
+  padding-right: 1.15rem !important;
+}}
+.whisper-echo {{
+  margin: 0.85rem 0 1rem;
+  padding-left: calc(40% + 0.6rem);
+  font-size: 0.92rem;
+  line-height: 1.75;
+  font-style: italic;
+  color: {BROWN};
+}}
+@media (max-width: 720px) {{
+  .whisper-avatar {{
+    width: 200px !important;
+  }}
+  .whisper-avatar img {{
+    width: 200px !important;
+    height: 200px !important;
+    max-width: 200px !important;
+  }}
+  .whisper-copy {{
+    text-align: center;
+  }}
+  .st-key-beat_whisper_1,
+  div[class*="st-key-beat_whisper_"] {{
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }}
+  .whisper-echo {{
+    padding-left: 0;
+    text-align: center;
+  }}
+}}
 .beat-contrast {{
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1089,8 +1344,13 @@ div[data-testid="stHorizontalBlock"]:has(.original-quote) {{
   margin-bottom: 0.35rem;
 }}
 .fate-echo {{
-  margin: 1rem 0 0.5rem;
-  padding: 1rem 1.15rem;
+  display: block;
+  width: fit-content;
+  max-width: min(42em, 100%);
+  height: auto;
+  box-sizing: border-box;
+  margin: 1rem auto 0.5rem;
+  padding: 1rem 1.25rem;
   background: rgba(140, 43, 43, 0.07);
   border: 1px solid rgba(140, 43, 43, 0.28);
   border-left: 3px solid {MADDER};
@@ -1110,14 +1370,22 @@ div[data-testid="stHorizontalBlock"]:has(.original-quote) {{
   line-height: 1.8;
   color: #3A2F22;
   font-style: italic;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }}
 .fate-echo .echo-you {{
-  margin-top: 0.65rem;
+  margin: 0 0 0.55rem;
+  padding: 0;
+  border: none;
+  font-style: normal;
+  font-size: 0.92rem;
+  color: {BROWN};
+}}
+.fate-echo .echo-note {{
+  margin-top: 0.55rem;
   padding-top: 0.55rem;
   border-top: 1px solid rgba(140, 43, 43, 0.18);
-  font-style: normal;
-  font-size: 0.88rem;
-  color: {BROWN};
 }}
 .coda-choices {{
   margin: 1.25rem auto 0.5rem;
@@ -1237,164 +1505,218 @@ div[data-testid="stButton"] > button[kind="secondary"]:hover {{
   box-shadow: 0 0 14px rgba(196, 154, 69, 0.28) !important;
 }}
 
-/* 对开羊皮纸：固定与封面同高 */
-div[data-testid="stHorizontalBlock"]:has(.open-book-left) {{
-  position: relative;
-  max-width: 680px;
-  height: 490px;
-  margin: 0.35rem auto 0.75rem !important;
-  background:
-    linear-gradient(90deg,
-      {PARCHMENT} 0%,
-      {CARD_BG} 46%,
-      #C9B89A 49.4%,
-      #B5A288 50%,
-      #C9B89A 50.6%,
-      {CARD_BG} 54%,
-      {PARCHMENT} 100%);
-  border: 1px solid rgba(196, 154, 69, 0.42);
-  border-radius: 3px 8px 8px 3px;
+/* ---------- 画页展廊（双排横向滑动） ---------- */
+.exhibit-wall {{
+  max-width: 1100px;
+  margin: 0 auto;
+  animation: exhibitIn 0.35s ease;
+}}
+.exhibit-head {{
+  text-align: center;
+  margin: 0.15rem 0 0.45rem;
+}}
+.exhibit-head .exhibit-kicker {{
+  display: block;
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  color: {SAGE};
+  margin-bottom: 0.25rem;
+}}
+.exhibit-head .exhibit-hint {{
+  margin: 0;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  color: {BROWN};
+  opacity: 0.78;
+}}
+.exhibit-rail {{
+  overflow-x: auto;
+  overflow-y: hidden;
+  width: 100%;
+  max-height: 520px;
+  padding-bottom: 0.35rem;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-color: rgba(196, 154, 69, 0.55) transparent;
+  background: {CREAM};
+  border: 1px solid rgba(196, 154, 69, 0.28);
+  border-radius: 2px;
   box-shadow:
-    0 0 0 1px rgba(44, 36, 22, 0.12),
-    0 12px 28px rgba(44, 36, 22, 0.12),
-    inset 0 0 50px rgba(107, 74, 48, 0.05);
-  padding: 14px 12px 12px !important;
-  gap: 0.2rem !important;
-  align-items: stretch !important;
-  overflow: hidden;
-  animation: openBookIn 0.35s ease;
+    inset 0 0 40px rgba(107, 74, 48, 0.04),
+    0 10px 24px rgba(44, 36, 22, 0.08);
 }}
-div[data-testid="stHorizontalBlock"]:has(.open-book-left)::before {{
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 0;
-  bottom: 0;
-  width: 16px;
-  transform: translateX(-50%);
-  background: linear-gradient(90deg,
-    rgba(44, 36, 22, 0.07),
-    rgba(44, 36, 22, 0.2) 45%,
-    rgba(255, 255, 255, 0.12) 55%,
-    rgba(44, 36, 22, 0.05));
-  pointer-events: none;
-  z-index: 2;
+.exhibit-rail::-webkit-scrollbar {{
+  height: 8px;
 }}
-.open-book-leaf {{
-  position: relative;
-  z-index: 1;
-  padding: 4px 10px 8px;
+.exhibit-rail::-webkit-scrollbar-thumb {{
+  background: rgba(196, 154, 69, 0.45);
+  border-radius: 4px;
+}}
+.exhibit-board {{
+  display: block;
+  width: max-content;
+  min-width: 100%;
   box-sizing: border-box;
+  background: {CREAM};
+  padding: 1.1rem 0.85rem 1.25rem;
 }}
-.open-book-left.open-book-leaf {{
-  min-height: 455px;
+.exhibit-track {{
   display: flex;
   flex-direction: column;
+  gap: 1.35rem;
+  width: max-content;
+  min-width: 100%;
+  padding: 0.35rem 1.5rem 0.2rem;
+  box-sizing: border-box;
+  background: {CREAM};
 }}
-.open-book-leaf .leaf-kicker {{
+.exhibit-row {{
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  gap: 1.35rem;
+  align-items: flex-start;
+}}
+.exhibit-row-even {{
+  padding-left: 5.5rem;
+}}
+.exhibit-note {{
+  position: relative;
   display: block;
-  text-align: center;
-  font-family: "Playfair Display", Georgia, serif !important;
-  font-size: 0.68rem;
-  letter-spacing: 0.2em;
-  color: {SAGE};
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.85rem 0.55rem 0.6rem;
+  text-decoration: none !important;
+  color: inherit !important;
+  background: {IVORY};
+  border: 1px solid rgba(196, 154, 69, 0.4);
+  border-radius: 2px;
+  box-shadow:
+    0 6px 16px rgba(44, 36, 22, 0.12),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+  cursor: pointer;
+  transition: box-shadow 0.25s ease, border-color 0.25s ease;
+}}
+.exhibit-note::before {{
+  content: "";
+  position: absolute;
+  top: -7px;
+  left: 50%;
+  width: 12px;
+  height: 12px;
+  margin-left: -6px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 35% 30%, #b84a4a, {MADDER} 55%, #5c1a1a);
+  box-shadow: 0 1px 3px rgba(44, 36, 22, 0.35);
+  z-index: 2;
+}}
+.exhibit-note img {{
+  display: block;
+  width: 100%;
+  height: 92px;
+  object-fit: cover;
+  border-radius: 1px;
+  border: 1px solid rgba(168, 130, 72, 0.35);
+  background: {PARCHMENT};
   margin-bottom: 0.4rem;
 }}
-.open-book-leaf h2 {{
-  text-align: center;
-  font-size: 1.05rem;
-  color: {CARBON} !important;
-  margin: 0 0 0.45rem;
-  line-height: 1.35;
-  font-weight: 700;
+.exhibit-note .note-clock {{
+  display: block;
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: 0.58rem;
+  letter-spacing: 0.14em;
+  color: {GOLD_BORDER};
+  margin-bottom: 0.15rem;
 }}
-.open-book-left .leaf-body {{
-  font-size: 0.72rem;
-  line-height: 1.7;
-  color: #3A2F22;
-  text-align: justify;
-  text-indent: 2em;
-  margin: 0;
-}}
-.open-book-left .leaf-quote {{
-  margin-top: auto;
-  margin-bottom: 0.2rem;
-  padding-top: 0.85rem;
-  width: 100%;
-  max-width: 100%;
-  align-self: center;
-  text-align: center;
-  font-family: "Playfair Display", "Noto Serif SC", Georgia, serif !important;
-  font-size: 0.68rem;
-  line-height: 1.55;
-  font-style: italic !important;
-  font-weight: 400;
+.exhibit-note .note-kicker {{
+  display: block;
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
   color: {SAGE};
-  opacity: 0.9;
+  margin-bottom: 0.1rem;
+}}
+.exhibit-note .note-title {{
+  display: block;
+  font-family: "Noto Serif SC", "Source Han Serif SC", serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.3;
+  color: {CARBON};
   letter-spacing: 0.02em;
 }}
-.open-book-leaf .preview-hint {{
-  text-align: center;
-  font-size: 0.62rem;
-  color: {BROWN};
-  margin: 0 0 0.35rem;
-  letter-spacing: 0.04em;
+/* Streamlit 展廊：容器横滑，两排同步 */
+div[data-testid="stVerticalBlock"]:has(.exhibit-rail-host) {{
+  overflow-x: auto !important;
+  overflow-y: visible !important;
+  max-height: none !important;
+  background: {CREAM} !important;
+  border: 1px solid rgba(196, 154, 69, 0.28);
+  border-radius: 2px;
+  box-shadow:
+    inset 0 0 40px rgba(107, 74, 48, 0.04),
+    0 10px 24px rgba(44, 36, 22, 0.08);
+  padding: 1.1rem 0.75rem 1.25rem !important;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-color: rgba(196, 154, 69, 0.55) transparent;
 }}
-/* 右页：以图为主；章节名缩小；插图微旋错落 */
-div[data-testid="column"]:has(.preview-tilt-a) p.preview-caption,
-div[data-testid="column"]:has(.preview-tilt-a) .preview-caption {{
-  text-align: center !important;
-  font-size: 0.52rem !important;
-  line-height: 1.3 !important;
-  color: {BROWN} !important;
-  margin: 0.1rem 0 0.55rem !important;
-  opacity: 0.62 !important;
-  letter-spacing: 0.02em !important;
-  font-weight: 400 !important;
+div[data-testid="stVerticalBlock"]:has(.exhibit-rail-host) > div[data-testid="stHorizontalBlock"] {{
+  flex-wrap: nowrap !important;
+  width: max-content !important;
+  min-width: 1520px !important;
+  gap: 1.15rem !important;
+  margin-bottom: 0.85rem !important;
 }}
-div[data-testid="column"]:has(.preview-tilt-a) [data-testid="stImage"]:nth-of-type(1) {{
-  width: 84% !important;
-  max-width: 84% !important;
-  margin: 0.15rem 0 0.1rem 1% !important;
-  transform: rotate(-4.8deg) !important;
-  transform-origin: center center !important;
+div[data-testid="stVerticalBlock"]:has(.exhibit-rail-host) > div[data-testid="stHorizontalBlock"]:has(.exhibit-row-even) {{
+  padding-left: 4.5rem !important;
+  margin-bottom: 0.25rem !important;
 }}
-div[data-testid="column"]:has(.preview-tilt-a) [data-testid="stImage"]:nth-of-type(2) {{
-  width: 78% !important;
-  max-width: 78% !important;
-  margin: 0.45rem 2% 0.1rem 16% !important;
-  transform: rotate(3.6deg) !important;
-  transform-origin: center center !important;
+div[data-testid="stVerticalBlock"]:has(.exhibit-rail-host) [data-testid="column"] {{
+  min-width: 168px !important;
+  width: 168px !important;
+  flex: 0 0 168px !important;
 }}
-div[data-testid="column"]:has(.preview-tilt-a) [data-testid="stImage"] img {{
-  max-height: 118px !important;
+/* 便签热区：透明按钮叠在门面上 */
+div[class*="st-key-exhibit_"] {{
+  margin-top: -210px !important;
+  margin-bottom: 0 !important;
+  height: 210px !important;
+  max-height: 210px !important;
+  position: relative !important;
+  z-index: 8 !important;
+  overflow: hidden !important;
+}}
+div[class*="st-key-exhibit_"] div[data-testid="stButton"],
+div[class*="st-key-exhibit_"] .stButton {{
+  height: 210px !important;
+  margin: 0 !important;
+}}
+div[class*="st-key-exhibit_"] button {{
+  opacity: 0 !important;
   width: 100% !important;
-  object-fit: cover !important;
-  border-radius: 2px !important;
-  border: 1px solid rgba(168, 130, 72, 0.4) !important;
-  box-shadow: 0 5px 14px rgba(44, 36, 22, 0.16) !important;
+  height: 210px !important;
+  min-height: 210px !important;
+  cursor: pointer !important;
+  border: none !important;
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  color: transparent !important;
+  padding: 0 !important;
 }}
-/* 兼容：直接作用在 img（部分 Streamlit 版本 stImage 结构不同） */
-div[data-testid="column"]:has(.preview-tilt-a) [data-testid="stImage"]:nth-of-type(1) img {{
-  transform: rotate(-4.8deg) !important;
+div[data-testid="column"]:has([class*="st-key-exhibit_"]:hover) .exhibit-note {{
+  border-color: rgba(196, 154, 69, 0.85) !important;
+  box-shadow:
+    0 10px 22px rgba(44, 36, 22, 0.16),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.4) !important;
 }}
-div[data-testid="column"]:has(.preview-tilt-a) [data-testid="stImage"]:nth-of-type(2) img {{
-  transform: rotate(3.6deg) !important;
+.reading-back-toc {{
+  display: flex;
+  justify-content: center;
+  margin: 0 0 0.65rem;
 }}
-.open-book-hint {{
-  text-align: center;
-  font-size: 0.78rem;
-  letter-spacing: 0.08em;
-  color: {SAGE};
-  opacity: 0.75;
-  margin: 0.15rem 0 0.55rem;
-}}
-.open-book-wrap {{
-  max-width: 720px;
-  margin: 0 auto;
-}}
-@keyframes openBookIn {{
-  from {{ opacity: 0.4; transform: translateY(6px); }}
+@keyframes exhibitIn {{
+  from {{ opacity: 0.45; transform: translateY(8px); }}
   to {{ opacity: 1; transform: none; }}
 }}
 
@@ -1407,82 +1729,99 @@ div[data-testid="column"]:has(.preview-tilt-a) [data-testid="stImage"]:nth-of-ty
   color: {BROWN};
   margin: 0 0 1rem;
 }}
+/* 「回到目录」：窄铭牌、居中、精致一点 */
+.st-key-btn_back_to_gallery {{
+  display: flex !important;
+  justify-content: center !important;
+  width: 100% !important;
+  margin: 0.15rem 0 0.35rem !important;
+}}
+.st-key-btn_back_to_gallery div[data-testid="stButton"],
+.st-key-btn_back_to_gallery .stButton {{
+  width: fit-content !important;
+  margin: 0 auto !important;
+}}
+.st-key-btn_back_to_gallery button,
+.st-key-btn_back_to_gallery button[kind="secondary"],
+.st-key-btn_back_to_gallery button[kind="primary"] {{
+  width: auto !important;
+  min-width: unset !important;
+  min-height: 2.05rem !important;
+  height: auto !important;
+  padding: 0.42rem 1.4rem !important;
+  border-radius: 2px !important;
+  border: 1px solid rgba(196, 154, 69, 0.7) !important;
+  background-color: {IVORY} !important;
+  background-image:
+    linear-gradient(180deg, rgba(255,255,255,0.45) 0%, transparent 48%),
+    linear-gradient(165deg, #F3EEE3 0%, {IVORY} 55%, #E4DCCE 100%) !important;
+  color: {BROWN} !important;
+  font-family: "Playfair Display", Georgia, "Noto Serif SC", serif !important;
+  font-size: 0.78rem !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.2em !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    inset 0 0 0 1px rgba(196, 154, 69, 0.18),
+    0 2px 8px rgba(44, 36, 22, 0.08) !important;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease, transform 0.3s ease !important;
+}}
+.st-key-btn_back_to_gallery button:hover,
+.st-key-btn_back_to_gallery button[kind="secondary"]:hover,
+.st-key-btn_back_to_gallery button[kind="primary"]:hover {{
+  color: {CARBON} !important;
+  border-color: rgba(196, 154, 69, 0.95) !important;
+  background-color: rgba(237, 232, 220, 0.98) !important;
+  background-image:
+    linear-gradient(180deg, rgba(255,255,255,0.5) 0%, transparent 50%),
+    linear-gradient(165deg, #F7F2E8 0%, {IVORY} 60%, #E8DFD0 100%) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    inset 0 0 0 1px rgba(196, 154, 69, 0.28),
+    0 3px 12px rgba(44, 36, 22, 0.1),
+    0 0 0 1px rgba(196, 154, 69, 0.2) !important;
+  transform: translateY(-1px) !important;
+  filter: none !important;
+}}
 .reading-nav-hint {{
   display: none;
 }}
-/* 左右翻页：fixed 贴视口两侧；勿改 section.main 的 overflow，否则页面无法滚动 */
-div[data-testid="stHorizontalBlock"]:has(.flip-nav-left):has(.reading-mid-mark) {{
-  align-items: flex-start !important;
-  gap: 0 !important;
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-  padding: 0 !important;
-  margin: 0 0 0.5rem !important;
-  position: relative !important;
-}}
-div[data-testid="stHorizontalBlock"]:has(.flip-nav-left):has(.reading-mid-mark)::before,
-div[data-testid="stHorizontalBlock"]:has(.flip-nav-left):has(.reading-mid-mark)::after {{
-  display: none !important;
-}}
-div[data-testid="column"]:has(.flip-nav-mark) {{
-  position: fixed !important;
-  top: 50% !important;
-  transform: translateY(-50%) !important;
-  z-index: 1000 !important;
-  width: 44px !important;
-  min-width: 44px !important;
-  max-width: 44px !important;
-  flex: 0 0 0 !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  display: flex !important;
-  flex-direction: column !important;
-  justify-content: center !important;
-  align-items: center !important;
-  height: auto !important;
-  align-self: flex-start !important;
-  pointer-events: auto !important;
-}}
-/* 左侧外移到视口左缘（避开折叠侧栏） */
-div[data-testid="column"]:has(.flip-nav-left) {{
-  left: 5rem !important;
-  right: auto !important;
-}}
-/* 右侧外移到视口右缘 */
-div[data-testid="column"]:has(.flip-nav-right) {{
-  right: 1.75rem !important;
-  left: auto !important;
-}}
-/* 直接钉住按钮本体，避免父级 transform 让 fixed 失效 */
-button.ebook-nav-pinned,
-div[data-testid="stButton"] > button.ebook-nav-pinned {{
+/* 左右翻页：视口两侧固定，不进内容栏 */
+.st-key-flip_prev,
+.st-key-flip_next {{
   position: fixed !important;
   top: 50% !important;
   transform: translateY(-50%) !important;
   z-index: 10000 !important;
   width: 44px !important;
-  height: 44px !important;
   min-width: 44px !important;
-  min-height: 44px !important;
+  max-width: 44px !important;
+  height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: visible !important;
 }}
-button.ebook-nav-pinned-left,
-div[data-testid="stButton"] > button.ebook-nav-pinned-left {{
-  left: 5rem !important;
+.st-key-flip_prev {{
+  left: 10px !important;
   right: auto !important;
 }}
-button.ebook-nav-pinned-right,
-div[data-testid="stButton"] > button.ebook-nav-pinned-right {{
-  right: 1.75rem !important;
+.st-key-flip_next {{
+  right: 10px !important;
   left: auto !important;
 }}
-div[data-testid="column"]:has(.flip-nav-mark) div[data-testid="stButton"] {{
+.st-key-flip_prev div[data-testid="stButton"],
+.st-key-flip_next div[data-testid="stButton"],
+.st-key-flip_prev .stButton,
+.st-key-flip_next .stButton {{
   margin: 0 !important;
   width: 44px !important;
 }}
-div[data-testid="column"]:has(.flip-nav-mark) div[data-testid="stButton"] > button,
-div[data-testid="column"]:has(.flip-nav-mark) div[data-testid="stButton"] > button[kind="primary"],
-div[data-testid="column"]:has(.flip-nav-mark) div[data-testid="stButton"] > button[kind="secondary"] {{
+.st-key-flip_prev button,
+.st-key-flip_next button,
+.st-key-flip_prev button[kind="primary"],
+.st-key-flip_prev button[kind="secondary"],
+.st-key-flip_next button[kind="primary"],
+.st-key-flip_next button[kind="secondary"] {{
   width: 44px !important;
   height: 44px !important;
   min-width: 44px !important;
@@ -1508,22 +1847,36 @@ div[data-testid="column"]:has(.flip-nav-mark) div[data-testid="stButton"] > butt
     0 2px 8px rgba(44, 36, 22, 0.12) !important;
   aspect-ratio: 1 / 1 !important;
 }}
-div[data-testid="column"]:has(.flip-nav-mark) div[data-testid="stButton"] > button:hover,
-div[data-testid="column"]:has(.flip-nav-mark) div[data-testid="stButton"] > button[kind="primary"]:hover,
-div[data-testid="column"]:has(.flip-nav-mark) div[data-testid="stButton"] > button[kind="secondary"]:hover {{
+.st-key-flip_prev button:hover,
+.st-key-flip_next button:hover {{
   background-color: rgba(196, 154, 69, 0.55) !important;
-  background-image:
-    linear-gradient(180deg, rgba(255,255,255,0.22), transparent 55%) !important;
   color: {CARBON} !important;
-  border-color: {GOLD_BORDER} !important;
   transform: none !important;
-  box-shadow:
-    inset 0 0 5px rgba(44, 36, 22, 0.12),
-    0 0 0 1px rgba(196, 154, 69, 0.35) !important;
 }}
-div[data-testid="column"]:has(.flip-nav-mark) div[data-testid="stButton"] > button:disabled {{
+.st-key-flip_prev button:disabled,
+.st-key-flip_next button:disabled {{
   opacity: 0.4 !important;
-  transform: none !important;
+}}
+button.ebook-nav-pinned,
+div[data-testid="stButton"] > button.ebook-nav-pinned {{
+  position: fixed !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  z-index: 10000 !important;
+  width: 44px !important;
+  height: 44px !important;
+  min-width: 44px !important;
+  min-height: 44px !important;
+}}
+button.ebook-nav-pinned-left,
+div[data-testid="stButton"] > button.ebook-nav-pinned-left {{
+  left: 10px !important;
+  right: auto !important;
+}}
+button.ebook-nav-pinned-right,
+div[data-testid="stButton"] > button.ebook-nav-pinned-right {{
+  right: 10px !important;
+  left: auto !important;
 }}
 iframe[title="keyboard-nav-bridge"] {{
   position: absolute !important;
@@ -1534,15 +1887,15 @@ iframe[title="keyboard-nav-bridge"] {{
   pointer-events: none !important;
 }}
 @media (max-width: 900px) {{
-  div[data-testid="column"]:has(.flip-nav-left),
+  .st-key-flip_prev,
   button.ebook-nav-pinned-left,
   div[data-testid="stButton"] > button.ebook-nav-pinned-left {{
-    left: 3.5rem !important;
+    left: 6px !important;
   }}
-  div[data-testid="column"]:has(.flip-nav-right),
+  .st-key-flip_next,
   button.ebook-nav-pinned-right,
   div[data-testid="stButton"] > button.ebook-nav-pinned-right {{
-    right: 0.85rem !important;
+    right: 6px !important;
   }}
 }}
 .coda-panel {{
@@ -1613,8 +1966,53 @@ def init_session_state() -> None:
 
 
 def inject_stage_styles(view: str) -> None:
-    """封面/对开/尾声与阅读共用画布米色背景，避免书桌色割裂。"""
-    if view in ("cover", "open_book", "coda"):
+    """封面/画页/尾声与阅读共用画布米色背景，避免书桌色割裂。"""
+    if view == "open_book":
+        st.markdown(
+            f"""
+            <style>
+            .stApp {{
+              background-color: {CANVAS_BG} !important;
+              background-image:
+                url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E") !important;
+              background-blend-mode: multiply !important;
+              background-size: 180px 180px !important;
+            }}
+            section.main,
+            [data-testid="stMain"] {{
+              overflow-x: hidden !important;
+              overflow-y: auto !important;
+            }}
+            .main .block-container {{
+              padding-top: 0.25rem !important;
+              padding-bottom: 1rem !important;
+              padding-left: 1.25rem !important;
+              padding-right: 1.25rem !important;
+              max-width: 1120px;
+            }}
+            .main .block-container::before {{
+              display: none !important;
+            }}
+            .book-header {{
+              margin: 0.05rem 0 0.35rem !important;
+            }}
+            .book-title {{
+              color: {CARBON} !important;
+              font-size: 18px !important;
+              font-weight: 700 !important;
+              letter-spacing: 0.08em !important;
+              opacity: 1;
+            }}
+            .brush-underline {{
+              display: block !important;
+              width: min(360px, 80%) !important;
+              margin: 6px auto 0 !important;
+            }}
+            </style>
+            """,
+            unsafe_allow_html=True,
+        )
+    elif view in ("cover", "coda"):
         st.markdown(
             f"""
             <style>
@@ -1665,15 +2063,9 @@ def inject_stage_styles(view: str) -> None:
               overflow-y: auto !important;
             }}
             .main .block-container {{
-              padding-left: 5.5rem !important;
-              padding-right: 5.5rem !important;
+              padding-left: 4rem !important;
+              padding-right: 4rem !important;
               max-width: 980px;
-            }}
-            div[data-testid="column"]:has(.flip-nav-left) {{
-              left: 5rem !important;
-            }}
-            div[data-testid="column"]:has(.flip-nav-right) {{
-              right: 1.75rem !important;
             }}
             .book-header {{
               margin: 0.15rem 0 0.85rem !important;
@@ -1701,6 +2093,15 @@ def inject_stage_styles(view: str) -> None:
               margin-left: 0 !important;
               margin-right: 0 !important;
               transform: none !important;
+            }}
+            /* 翻页钮钉在视口左右缘，不随内容横移 */
+            .st-key-flip_prev {{
+              left: 10px !important;
+              right: auto !important;
+            }}
+            .st-key-flip_next {{
+              right: 10px !important;
+              left: auto !important;
             }}
             </style>
             """,
@@ -1758,12 +2159,40 @@ def go_coda() -> None:
     st.session_state.view = "coda"
 
 
-def render_confession(text: str) -> None:
-    """即时展示独白（轻量淡入，避免打字机阻塞整页）。"""
-    st.markdown(
-        f'<div class="confession-box">{_escape_multiline(text)}</div>',
-        unsafe_allow_html=True,
-    )
+def render_confession(text: str, *, avatar: str | None = None) -> None:
+    """即时展示独白；有 avatar 时左像右文，如 C 太太亲口作答。"""
+    if not text:
+        return
+    body = _escape_multiline(text)
+    if not avatar:
+        st.markdown(
+            f'<div class="confession-box">{body}</div>',
+            unsafe_allow_html=True,
+        )
+        return
+
+    avatar_src = _thumb_data_uri(avatar, 560)
+    left_c, right_c = st.columns([1.05, 1.95], gap="medium")
+    with left_c:
+        st.markdown(
+            f"""
+            <div class="confession-avatar">
+              <img src="{avatar_src}" alt="C太太"/>
+              <span class="avatar-caption">C 太太</span>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    with right_c:
+        st.markdown(
+            f"""
+            <div class="confession-dialogue">
+              <span class="beat-kicker">C 太太 · 亲口作答</span>
+              <div class="confession-spoken">{body}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -1904,134 +2333,76 @@ def render_cover() -> None:
         st.markdown("</div>", unsafe_allow_html=True)
 
 
+def _exhibit_note_parts(card: dict, idx: int) -> tuple[str, str]:
+    """拆出便签上的节点号与短标题。"""
+    raw = (card.get("title") or f"节点{idx + 1}").strip()
+    for sep in ("·", "：", ":"):
+        if sep in raw:
+            left, right = raw.split(sep, 1)
+            return left.strip(), right.strip()
+    return f"节点{idx + 1}", raw
+
+
+def _exhibit_note_html(idx: int) -> str:
+    """便签外观（非链接；点击由透明 Streamlit 按钮触发 goto_page）。"""
+    card = SCENE_CARDS[idx]
+    kicker, title = _exhibit_note_parts(card, idx)
+    clock = SCENE_CLOCKS[idx] if idx < len(SCENE_CLOCKS) else "——"
+    src = _thumb_data_uri(card.get("image"), 240)
+    tilt = EXHIBIT_TILTS[idx % len(EXHIBIT_TILTS)]
+    nudge = (-6, 4, -3, 7, -5, 3, -8, 5)[idx % 8]
+    return (
+        f'<div class="exhibit-note" '
+        f'style="transform:rotate({tilt}deg) translateY({nudge}px);">'
+        f'<img src="{src}" alt="{html.escape(kicker)}"/>'
+        f'<span class="note-clock">{html.escape(clock)}</span>'
+        f'<span class="note-kicker">{html.escape(kicker)}</span>'
+        f'<span class="note-title">{html.escape(title)}</span>'
+        f"</div>"
+    )
+
+
+def _render_exhibit_row(indices: list[int], *, even: bool = False) -> None:
+    mark = "exhibit-row-even" if even else "exhibit-row-odd"
+    st.markdown(f'<span class="{mark}"></span>', unsafe_allow_html=True)
+    cols = st.columns(len(indices), gap="medium")
+    for col, idx in zip(cols, indices):
+        with col:
+            st.markdown(_exhibit_note_html(idx), unsafe_allow_html=True)
+            st.button(
+                f"进入节点{idx + 1}",
+                key=f"exhibit_{idx}",
+                width="stretch",
+                on_click=goto_page,
+                args=(idx,),
+            )
+
+
 def render_open_book() -> None:
-    """对开羊皮纸：Streamlit 原生渲染（避免 iframe 嵌入大图导致空白/卡顿）。"""
-    intro_title = INTRO.get("title", "")
-    # 完整展示引言首段（book_content.INTRO 第一段）
-    first_para = INTRO.get("text", "").split("\n\n")[0].strip()
-
-    st.markdown('<div class="open-book-wrap">', unsafe_allow_html=True)
-    left, right = st.columns(2, gap="small")
-
-    with left:
-        st.markdown(
-            f"""
-            <div class="open-book-left open-book-leaf">
-              <span class="leaf-kicker">PROLOGUE · 题记</span>
-              <h2>{html.escape(intro_title)}</h2>
-              <p class="leaf-body">{html.escape(first_para)}</p>
-              <p class="leaf-quote">一半真实毫无价值，有意义的永远只在全部真实。</p>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-    with right:
-        # components.html：避免 Streamlit markdown 转义 <figure>/<img> 导致源码外泄
-        figs = []
-        node_labels = ("节点一", "节点二", "节点三")
-        tilts = (-3.8, 3.2, -2.4)
-        for i in range(min(PREVIEW_COUNT, TOTAL_PAGES)):
-            card = SCENE_CARDS[i]
-            src = _thumb_data_uri(card.get("image"), 280)
-            label = html.escape(
-                node_labels[i] if i < len(node_labels) else f"节点{i + 1}"
-            )
-            rot = tilts[i % len(tilts)]
-            w = "72%" if i else "78%"
-            figs.append(
-                f'<figure class="fig fig-{i}" style="transform:rotate({rot}deg);width:{w};">'
-                f'<img src="{src}" alt="{label}"/>'
-                f"<figcaption>{label}</figcaption></figure>"
-            )
-        gallery_html = "".join(figs)
-        right_html = f"""<!DOCTYPE html>
-<html><head><meta charset="utf-8"/>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@500;600&family=Playfair+Display:wght@400;500&display=swap');
-  html, body {{
-    margin: 0; padding: 0; background: transparent; overflow: hidden;
-    font-family: "Noto Serif SC", "Source Han Serif SC", serif;
-  }}
-  .wrap {{
-    text-align: center;
-    padding: 4px 8px 6px;
-    box-sizing: border-box;
-    height: 430px;
-  }}
-  .kicker {{
-    margin: 0 0 8px;
-    font-family: "Playfair Display", Georgia, serif;
-    font-size: 11px;
-    letter-spacing: 0.2em;
-    color: #536257;
-  }}
-  .hint {{
-    margin: 0 0 10px;
-    font-size: 10px;
-    letter-spacing: 0.06em;
-    color: #6B4A30;
-    opacity: 0.8;
-  }}
-  .gallery {{
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 14px;
-  }}
-  .fig {{
-    margin: 0;
-    max-width: 240px;
-  }}
-  .fig img {{
-    display: block;
-    width: 100%;
-    max-height: 110px;
-    object-fit: cover;
-    border-radius: 2px;
-    border: 1px solid rgba(168, 130, 72, 0.4);
-    box-shadow: 0 5px 14px rgba(44, 36, 22, 0.14);
-    background: #EDE8DC;
-  }}
-  .fig figcaption {{
-    margin-top: 5px;
-    font-size: 10px;
-    letter-spacing: 0.12em;
-    color: #6B4A30;
-    opacity: 0.6;
-    text-align: center;
-  }}
-</style></head><body>
-  <div class="wrap">
-    <p class="kicker">PRELUDE · 画页</p>
-    <p class="hint">点按下方进入 · 开启第一幕</p>
-    <div class="gallery">{gallery_html}</div>
-  </div>
-</body></html>"""
-        components.html(right_html, height=440, scrolling=False)
-
-
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    c1, c2, c3 = st.columns([1, 1.15, 1])
-    with c2:
-        st.markdown('<div class="cover-fallback">', unsafe_allow_html=True)
-        st.button(
-            "由此进入书中世界",
-            key="btn_enter_reading",
-            width="stretch",
-            on_click=enter_reading,
-            type="primary",
-        )
-        st.markdown("</div>", unsafe_allow_html=True)
-
+    """画页展廊：奇偶双排便签，横向滑动；点便签会话内进入对应节点。"""
     st.markdown(
-        '<p class="open-book-hint">点上方按钮启程 · 自第一节点开始</p>',
+        """
+        <div class="exhibit-wall">
+          <div class="exhibit-head">
+            <span class="exhibit-kicker">GALLERY · 二十四小时展厅</span>
+            <p class="exhibit-hint">点按便签进入该时辰</p>
+          </div>
+        </div>
+        """,
         unsafe_allow_html=True,
     )
-    _, back, _ = st.columns([1.2, 0.8, 1.2])
-    with back:
+
+    back_l, back_m, back_r = st.columns([1.2, 0.8, 1.2])
+    with back_m:
         st.button("返回封面", key="btn_back_cover", width="stretch", on_click=go_cover)
+
+    with st.container():
+        st.markdown(
+            '<span class="exhibit-rail-host"></span>',
+            unsafe_allow_html=True,
+        )
+        _render_exhibit_row(list(range(0, TOTAL_PAGES, 2)), even=False)
+        _render_exhibit_row(list(range(1, TOTAL_PAGES, 2)), even=True)
 
 
 def render_light_beat(beat: dict, scene_idx: int) -> None:
@@ -2043,30 +2414,73 @@ def render_light_beat(beat: dict, scene_idx: int) -> None:
 
     if kind == "whisper":
         prompt = html.escape(beat.get("prompt", ""))
-        st.markdown(
-            f"""
-            <div class="beat-panel">
-              <span class="beat-kicker">{kicker}</span>
-              <p>{prompt}</p>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+        kicker_text = html.escape(beat.get("kicker", "听者 · 一句确认"))
         confirmed = bool(st.session_state.beats_confirmed.get(scene_idx))
-        label = beat.get("confirm_label", "我听见了")
-        if st.button(
-            label if not confirmed else f"✓ {label}",
-            key=f"beat_whisper_{scene_idx}",
-            width="stretch",
-            disabled=confirmed,
-        ):
-            st.session_state.beats_confirmed[scene_idx] = True
-            st.rerun()
-        if confirmed and beat.get("echo"):
+        label = beat.get("confirm_label", "我愿意倾听")
+        avatar_ref = beat.get("avatar")
+
+        if avatar_ref:
+            avatar_src = _thumb_data_uri(avatar_ref, 560)
+            left_c, right_c = st.columns([1.05, 1.95], gap="medium")
+            with left_c:
+                st.markdown(
+                    f"""
+                    <div class="whisper-avatar">
+                      <img src="{avatar_src}" alt="C太太"/>
+                      <span class="avatar-caption">C 太太</span>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+            with right_c:
+                st.markdown(
+                    f"""
+                    <div class="whisper-copy">
+                      <span class="beat-kicker">{kicker_text}</span>
+                      <p class="whisper-prompt">{prompt}</p>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+                if st.button(
+                    label if not confirmed else f"✓ {label}",
+                    key=f"beat_whisper_{scene_idx}",
+                    width="content",
+                    disabled=confirmed,
+                ):
+                    st.session_state.beats_confirmed[scene_idx] = True
+                    st.rerun()
+        else:
             st.markdown(
-                f'<div class="beat-panel"><p>{html.escape(beat["echo"])}</p></div>',
+                f"""
+                <div class="beat-panel">
+                  <span class="beat-kicker">{kicker_text}</span>
+                  <p>{prompt}</p>
+                </div>
+                """,
                 unsafe_allow_html=True,
             )
+            if st.button(
+                label if not confirmed else f"✓ {label}",
+                key=f"beat_whisper_{scene_idx}",
+                width="stretch",
+                disabled=confirmed,
+            ):
+                st.session_state.beats_confirmed[scene_idx] = True
+                st.rerun()
+
+        if confirmed and beat.get("echo"):
+            echo = html.escape(beat["echo"])
+            if avatar_ref:
+                st.markdown(
+                    f'<p class="whisper-echo">{echo}</p>',
+                    unsafe_allow_html=True,
+                )
+            else:
+                st.markdown(
+                    f'<div class="beat-panel"><p>{echo}</p></div>',
+                    unsafe_allow_html=True,
+                )
         return
 
     if kind == "contrast":
@@ -2228,34 +2642,50 @@ def render_door_choice_block(card: dict, scene_idx: int) -> None:
     if not choice:
         key_a = f"door_{scene_idx}_A"
         key_b = f"door_{scene_idx}_B"
-        # 用 st-key-* + 负边距叠热区（比 column absolute 更稳，避免点不到或露出按钮）
+        # 440×660（2:3，相对原 220×330 放大至 200%）
+        door_w = 440
+        door_h = 660
         st.markdown(
             f"""
             <style>
+            div[data-testid="stHorizontalBlock"]:has(.st-key-{key_a}) {{
+              justify-content: center !important;
+              gap: 0.85rem !important;
+              max-width: 1120px !important;
+              margin-left: auto !important;
+              margin-right: auto !important;
+            }}
             .st-key-{key_a},
             .st-key-{key_b} {{
-              margin-top: -280px !important;
+              margin-top: -{door_h}px !important;
               margin-bottom: 0 !important;
-              height: 280px !important;
-              max-height: 280px !important;
+              height: {door_h}px !important;
+              max-height: {door_h}px !important;
+              width: {door_w}px !important;
+              max-width: {door_w}px !important;
+              min-width: {door_w}px !important;
               position: relative !important;
               z-index: 8 !important;
               overflow: hidden !important;
+              margin-left: auto !important;
+              margin-right: auto !important;
+              flex-shrink: 0 !important;
             }}
             .st-key-{key_a} div[data-testid="stButton"],
             .st-key-{key_b} div[data-testid="stButton"],
             .st-key-{key_a} .stButton,
             .st-key-{key_b} .stButton {{
-              height: 280px !important;
+              height: {door_h}px !important;
               margin: 0 !important;
+              width: 100% !important;
             }}
             .st-key-{key_a} button,
             .st-key-{key_b} button {{
               opacity: 0 !important;
               width: 100% !important;
-              height: 280px !important;
-              min-height: 280px !important;
-              max-height: 280px !important;
+              height: {door_h}px !important;
+              min-height: {door_h}px !important;
+              max-height: {door_h}px !important;
               cursor: pointer !important;
               border: none !important;
               background: transparent !important;
@@ -2265,16 +2695,21 @@ def render_door_choice_block(card: dict, scene_idx: int) -> None:
               padding: 0 !important;
             }}
             .fate-door-face.is-pickable {{
-              min-height: 260px !important;
-              height: 260px !important;
+              width: {door_w}px !important;
+              max-width: {door_w}px !important;
+              min-width: {door_w}px !important;
+              height: {door_h}px !important;
+              aspect-ratio: 2 / 3 !important;
               box-sizing: border-box !important;
-              margin-bottom: 0.35rem;
-              overflow: hidden;
+              margin: 0 auto 0.35rem !important;
+              overflow: hidden !important;
+              flex-shrink: 0 !important;
+              transform: none !important;
             }}
             div[data-testid="column"]:has(.st-key-{key_a}:hover) .fate-door-face.is-pickable,
             div[data-testid="column"]:has(.st-key-{key_b}:hover) .fate-door-face.is-pickable {{
               border-color: rgba(196, 154, 69, 0.92) !important;
-              transform: translateY(-2px);
+              transform: translateY(-2px) !important;
               box-shadow:
                 inset 0 0 0 5px rgba(237, 232, 220, 0.55),
                 inset 0 0 0 6px rgba(196, 154, 69, 0.4),
@@ -2288,7 +2723,9 @@ def render_door_choice_block(card: dict, scene_idx: int) -> None:
             '<p class="fate-door-hint">FATE DOORS · 点选一扇门</p>',
             unsafe_allow_html=True,
         )
-        col_a, col_b = st.columns(2, gap="medium")
+        pad_l, col_a, col_b, pad_r = st.columns(
+            [0.2, 1.5, 1.5, 0.2], gap="small"
+        )
         with col_a:
             st.markdown(
                 _door_face_html(door_a, voices.get("A", ""), pickable=True),
@@ -2327,16 +2764,22 @@ def render_door_choice_block(card: dict, scene_idx: int) -> None:
     )
     st.markdown(resolved, unsafe_allow_html=True)
 
-    render_confession(card.get(f"feedback_{choice}", ""))
+    render_confession(
+        card.get(f"feedback_{choice}", ""),
+        avatar=card.get("feedback_avatar"),
+    )
 
     picked_door = doors.get(choice) or {}
     picked_label = picked_door.get("title") or choices.get(choice, choice)
     note = card.get("author_note") or ""
+    note_html = (
+        f'<p class="echo-note">{html.escape(note)}</p>' if note else ""
+    )
     echo = (
         f'<div class="fate-echo">'
         f'<span class="echo-kicker">命运回响 · 你以为自己推开了</span>'
         f'<p class="echo-you">你推开了 <em>{html.escape(str(choice))} · {html.escape(picked_label)}</em></p>'
-        f"<p>{html.escape(note)}</p>"
+        f"{note_html}"
         f"</div>"
     )
     st.markdown(echo, unsafe_allow_html=True)
@@ -2413,12 +2856,15 @@ def render_choice_block(card: dict, scene_idx: int) -> None:
 
     picked_label = choices.get(choice, choice)
     note = card.get("author_note") or ""
+    note_html = (
+        f'<p class="echo-note">{html.escape(note)}</p>' if note else ""
+    )
     st.markdown(
         f"""
         <div class="fate-echo">
           <span class="echo-kicker">命运回响 · 你以为自己选择了</span>
           <p class="echo-you">你选了 <em>{html.escape(choice)} · {html.escape(picked_label)}</em></p>
-          <p>{html.escape(note)}</p>
+          {note_html}
         </div>
         """,
         unsafe_allow_html=True,
@@ -2464,13 +2910,15 @@ def render_card_detail(card: dict, scene_idx: int) -> None:
         st.session_state.beats_confirmed.get(scene_idx)
     )
     if soul_unlocked:
+        # 仅节点十五保留滑动刮擦显影；其余节点直接显示
         render_soul_analysis(
             analysis,
             scene_idx,
-            light=True,
+            scratch=(scene_idx == TOTAL_PAGES - 1),
+            light=False,
         )
     elif soul_gated:
-        st.caption("请先确认「我听见了」，再进入心灵解剖。")
+        st.caption("请先确认「我愿意倾听」，再进入心灵解剖。")
 
     if card.get("has_choice"):
         render_choice_block(card, scene_idx)
@@ -2528,7 +2976,7 @@ def consume_ebook_nav_param() -> None:
 
 
 def inject_keyboard_page_nav(*, can_next: bool) -> None:
-    """钉住翻页按钮到视口两侧，并监听 ← / →（改 query 触发 Streamlit 翻页）。"""
+    """钉住翻页按钮到视口左右缘，并监听 ← / →。"""
     components.html(
         f"""<!DOCTYPE html>
 <html><head><meta charset="utf-8"/>
@@ -2552,7 +3000,7 @@ def inject_keyboard_page_nav(*, can_next: bool) -> None:
   }}
 
   var canNext = {json.dumps(bool(can_next))};
-  var FLAG = "__ebookNavBridgeV2";
+  var FLAG = "__ebookNavBridgeV3";
   if (doc[FLAG] && doc[FLAG].handler) {{
     doc.removeEventListener("keydown", doc[FLAG].handler, true);
   }}
@@ -2560,44 +3008,50 @@ def inject_keyboard_page_nav(*, can_next: bool) -> None:
     clearInterval(doc[FLAG].timer);
   }}
 
-  function findButton(slotId, cls) {{
-    var slot = doc.getElementById(slotId) || doc.querySelector("." + cls);
-    if (!slot) return null;
-    var node = slot.parentElement;
-    for (var i = 0; i < 12 && node; i++) {{
-      var btn = node.querySelector("button");
-      if (btn) return btn;
-      node = node.parentElement;
+  function findBtn(keyClass) {{
+    var wrap = doc.querySelector("." + keyClass);
+    return wrap ? wrap.querySelector("button") : null;
+  }}
+
+  function pinOne(btn, side) {{
+    if (!btn) return false;
+    btn.classList.add("ebook-nav-pinned", side === "left" ? "ebook-nav-pinned-left" : "ebook-nav-pinned-right");
+    btn.style.setProperty("position", "fixed", "important");
+    btn.style.setProperty("top", "50%", "important");
+    btn.style.setProperty("transform", "translateY(-50%)", "important");
+    btn.style.setProperty("z-index", "10000", "important");
+    btn.style.setProperty("width", "44px", "important");
+    btn.style.setProperty("height", "44px", "important");
+    if (side === "left") {{
+      btn.style.setProperty("left", "10px", "important");
+      btn.style.setProperty("right", "auto", "important");
+    }} else {{
+      btn.style.setProperty("right", "10px", "important");
+      btn.style.setProperty("left", "auto", "important");
     }}
-    return null;
+    var wrap = btn.closest("[class*='st-key-flip_']");
+    if (wrap) {{
+      wrap.style.setProperty("position", "fixed", "important");
+      wrap.style.setProperty("top", "50%", "important");
+      wrap.style.setProperty("transform", "translateY(-50%)", "important");
+      wrap.style.setProperty("z-index", "10000", "important");
+      if (side === "left") {{
+        wrap.style.setProperty("left", "10px", "important");
+        wrap.style.setProperty("right", "auto", "important");
+      }} else {{
+        wrap.style.setProperty("right", "10px", "important");
+        wrap.style.setProperty("left", "auto", "important");
+      }}
+    }}
+    return true;
   }}
 
   function pinButtons() {{
-    var prev = findButton("ebook-flip-prev-slot", "flip-nav-left");
-    var next = findButton("ebook-flip-next-slot", "flip-nav-right");
-    if (prev) {{
-      prev.classList.add("ebook-nav-pinned", "ebook-nav-pinned-left");
-      prev.style.setProperty("position", "fixed", "important");
-      prev.style.setProperty("top", "50%", "important");
-      prev.style.setProperty("left", "5rem", "important");
-      prev.style.setProperty("right", "auto", "important");
-      prev.style.setProperty("transform", "translateY(-50%)", "important");
-      prev.style.setProperty("z-index", "10000", "important");
-      prev.style.setProperty("width", "44px", "important");
-      prev.style.setProperty("height", "44px", "important");
-    }}
-    if (next) {{
-      next.classList.add("ebook-nav-pinned", "ebook-nav-pinned-right");
-      next.style.setProperty("position", "fixed", "important");
-      next.style.setProperty("top", "50%", "important");
-      next.style.setProperty("right", "1.75rem", "important");
-      next.style.setProperty("left", "auto", "important");
-      next.style.setProperty("transform", "translateY(-50%)", "important");
-      next.style.setProperty("z-index", "10000", "important");
-      next.style.setProperty("width", "44px", "important");
-      next.style.setProperty("height", "44px", "important");
-    }}
-    return !!(prev && next);
+    var prev = findBtn("st-key-flip_prev");
+    var next = findBtn("st-key-flip_next");
+    var okPrev = pinOne(prev, "left");
+    var okNext = pinOne(next, "right");
+    return okPrev && okNext;
   }}
 
   function triggerNav(dir) {{
@@ -2608,13 +3062,8 @@ def inject_keyboard_page_nav(*, can_next: bool) -> None:
       win.location.href = url.toString();
       return;
     }} catch (e1) {{}}
-    var btn = findButton(
-      dir === "prev" ? "ebook-flip-prev-slot" : "ebook-flip-next-slot",
-      dir === "prev" ? "flip-nav-left" : "flip-nav-right"
-    );
-    if (btn && !btn.disabled) {{
-      btn.click();
-    }}
+    var btn = findBtn(dir === "prev" ? "st-key-flip_prev" : "st-key-flip_next");
+    if (btn && !btn.disabled) btn.click();
   }}
 
   var coolUntil = 0;
@@ -2657,7 +3106,7 @@ def inject_keyboard_page_nav(*, can_next: bool) -> None:
 
 
 def render_reading() -> None:
-    """单节点阅读：按钮钉在视口两侧；支持 ← / → 键盘翻页。"""
+    """单节点阅读：‹ › 钉在视口左右缘；支持键盘翻页。"""
     consume_ebook_nav_param()
 
     ss = st.session_state
@@ -2665,55 +3114,50 @@ def render_reading() -> None:
     card = SCENE_CARDS[page]
     need_choice = bool(card.get("has_choice")) and page not in ss.choices
 
+    toc_l, toc_m, toc_r = st.columns([1.35, 1, 1.35])
+    with toc_m:
+        st.button(
+            "回到目录",
+            key="btn_back_to_gallery",
+            width="content",
+            on_click=go_open_book,
+            help="返回二十四小时展厅",
+        )
+
     st.markdown(
         f'<p class="reading-meta">纸页 {page + 1} / {TOTAL_PAGES}'
         f'<span style="opacity:0.55;font-size:0.85em;">'
-        f' · 左侧边栏可跳转 · 键盘 ← → 亦可翻页</span></p>',
+        f' · 点击左侧边栏或键盘 ← → 可翻页</span></p>',
         unsafe_allow_html=True,
     )
 
-    left_nav, mid, right_nav = st.columns([0.01, 9.98, 0.01], gap="small")
-
-    with left_nav:
+    st.markdown('<span class="reading-mid-mark"></span>', unsafe_allow_html=True)
+    render_scene_card(card, page)
+    if need_choice:
         st.markdown(
-            '<span id="ebook-flip-prev-slot" class="flip-nav-mark flip-nav-left"></span>',
+            '<p class="flip-choice-hint">请先做出抉择，再点击右侧 › 或按 → 继续</p>',
             unsafe_allow_html=True,
         )
-        st.button(
-            "<",
-            key="flip_prev",
-            width="stretch",
-            on_click=go_prev_page,
-            help="上一节点（←）" if page > 0 else "返回画页（←）",
-        )
 
-    with mid:
-        st.markdown('<span class="reading-mid-mark"></span>', unsafe_allow_html=True)
-        render_scene_card(card, page)
-        if need_choice:
-            st.markdown(
-                '<p class="flip-choice-hint">请先做出抉择，再点击右侧 › 或按 → 继续</p>',
-                unsafe_allow_html=True,
-            )
-
-    with right_nav:
-        st.markdown(
-            '<span id="ebook-flip-next-slot" class="flip-nav-mark flip-nav-right"></span>',
-            unsafe_allow_html=True,
-        )
-        next_help = (
-            "请先做出抉择"
-            if need_choice
-            else ("合上这一日（→）" if page >= TOTAL_PAGES - 1 else "下一节点（→）")
-        )
-        st.button(
-            ">",
-            key="flip_next",
-            width="stretch",
-            disabled=need_choice,
-            on_click=go_next_page,
-            help=next_help,
-        )
+    # 翻页钮独立渲染，CSS/JS 钉到视口左右缘，避免进内容栏后横移
+    st.button(
+        "<",
+        key="flip_prev",
+        on_click=go_prev_page,
+        help="上一节点（←）" if page > 0 else "返回画页（←）",
+    )
+    next_help = (
+        "请先做出抉择"
+        if need_choice
+        else ("合上这一日（→）" if page >= TOTAL_PAGES - 1 else "下一节点（→）")
+    )
+    st.button(
+        ">",
+        key="flip_next",
+        disabled=need_choice,
+        on_click=go_next_page,
+        help=next_help,
+    )
 
     inject_keyboard_page_nav(can_next=not need_choice)
 
@@ -2743,7 +3187,7 @@ def render_side_toc() -> None:
                 args=(i,),
             )
         st.divider()
-        st.button("返回画页", width="stretch", on_click=go_open_book)
+        st.button("回到目录", width="stretch", on_click=go_open_book)
         st.button("返回封面", width="stretch", on_click=go_cover)
 
 
